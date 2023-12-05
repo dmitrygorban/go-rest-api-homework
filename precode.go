@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -48,7 +49,9 @@ func getTasks(writer http.ResponseWriter, request *http.Request) {
 	}
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
-	writer.Write(tasks)
+	if _, err := writer.Write(tasks); err != nil {
+		log.Printf("Error writing response: %v", err)
+	}
 }
 
 func addTask(writer http.ResponseWriter, request *http.Request) {
@@ -73,14 +76,15 @@ func getTask(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, errorMsg, http.StatusBadRequest)
 		return
 	}
-	resp, err := json.Marshal(task)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
+
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
-	writer.Write(resp)
+
+	err := json.NewEncoder(writer).Encode(task)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func deleteTask(writer http.ResponseWriter, request *http.Request) {
